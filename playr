@@ -1,0 +1,37 @@
+#!/usr/bin/env python
+
+import requests,re,sys,subprocess,socket,youtube_dl
+from flask import Flask,request,render_template
+app = Flask(__name__)
+yturl = r'(?:http(?:s|)://){0,1}(?:www.){0,1}youtu(?:\.be|be\.com)/(?:watch\?v=)([^\?&=]*)'
+
+@app.route("/playr/",methods = ['GET','POST'])
+def play():
+  t = render_template('playr.html')
+  if request.method == 'POST':
+    url = request.form['url']
+    if re.match(yturl,url):
+      ydl = youtube_dl.YoutubeDL({'outtmpl': '%(id)s%(ext)s'})
+      ydl.add_default_info_extractors()
+      result = ydl.extract_info(url,download=False)
+      if 'entries' in result: video = result['entries'][0]
+      else: video = result
+      vurl = video['url']
+    else:
+      s = requests.get(url).text
+      url = re.findall(r'<iframe [^>]*src=(?:"|\')([^\'"]*(?:mail\.ru|vk)[^\'"]*)(?:"|\')[^>]*',s)[0]
+      s = requests.get(url).text
+      if 'mail.ru' in url:
+        vdict = dict(re.findall(r'(hd|md|sd): "([^"]*)"',s))
+        vurl = vdict['hd'] if 'hd' in vdict else vdict['md'] if 'md' in vdict else vdict['sd']
+      elif 'vk' in url:
+        vurl = re.findall(r'(http[^"(http)]*\.720.mp4)',s)[0]
+    subprocess.call(["screen", "-S", "omx", "-X", "quit"])
+    subprocess.Popen(['screen','-S','omx','omxplayer','-o','hdmi',vurl])  
+    return t
+  else:
+   return t
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0',port=8774)
+
