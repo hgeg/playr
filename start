@@ -1,0 +1,2 @@
+#!/bin/bash
+spawn-fcgi playr -p 8092

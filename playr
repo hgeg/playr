@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import requests,re,sys,subprocess,socket,youtube_dl
 from flask import Flask,request,render_template
+from flup.server.fcgi import WSGIServer
 app = Flask(__name__)
 yturl = r'(?:http(?:s|)://){0,1}(?:www.){0,1}youtu(?:\.be|be\.com)/(?:watch\?v=)([^\?&=]*)'
 trurl = r'(http(?:s|)://[^"]*torrent[^"]*)'
@@ -37,4 +38,5 @@ def play():
     return t
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0',port=8774,debug=True)
+    #app.run(host='127.0.0.1',port=8092,debug=True)
+    WSGIServer(app).run()
