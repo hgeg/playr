@@ -14,7 +14,11 @@
       });
       $(window).keydown(function(event){
               if(event.which==13) {
-                $('#form').submit();
+                $('#loader').animate({opacity:1},250,'ease-out');
+                $.post('/playr/',$('#form').serialize(),function() {
+                  $('#url').val('');
+                  $('#loader').animate({opacity:0},250,'ease-out');
+                });
                 event.preventDefault();
               }
       });
@@ -29,12 +33,13 @@
     <div class="container" style="opacity:0;">
       <div class='row'></div>
       <div class='row'>
-        <div class='span ten'><h2><small>&#9654;</small>Playr</h2></div>
+          <div class='span ten'><h2><small>&#9654;</small>Playr
+            <img id="loader" width="28px" height="28px" src="/static/loading.gif" style="vertical-align:middle;opacity:0;">
+          </h2></div>
       </div>
-        <form id="form" method="POST" action="/playr/">
+        <form id="form">
           <div class='span ten'>
-              <!--<input autofocus autocomplete="off" onblur="this.focus();return false" name="url" class="main-input" type="text" placeholder="http://">-->
-              <textarea autofocus autocomplete="off" onblur="this.focus();return false" name="url" class="main-input" placeholder="http://" rows="50"></textarea>
+              <textarea autofocus autocomplete="off" onblur="this.focus();return false" id="url" name="url" class="main-input" placeholder="http://" rows="50"></textarea>
           </div>
         </form>
     </div>
