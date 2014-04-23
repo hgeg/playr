@@ -1,0 +1,27 @@
+#!/usr/bin/env python
+import libtorrent as lt
+import time,requests,sys,subprocess
+
+try:
+    url = sys.argv[1]
+
+    session = lt.session()
+    session.listen_on(6881, 6891)
+
+    tfile = requests.get(url).content
+    e = lt.bdecode(tfile)
+    info = lt.torrent_info(e)
+    info.rename_file(0,'media.tmp')
+
+    h = session.add_torrent(info, "./", storage_mode=lt.storage_mode_t.storage_mode_sparse)
+    h.set_sequential_download(True)
+
+    playing = False
+    while (not h.is_seed()):
+        s = h.status()
+        if not playing and s.progress>0.1:
+            playing = True
+            subprocess.call(["screen", "-S", "omx", "-X", "quit"])
+            subprocess.Popen(['screen','-S','omx','./omxplayer','-o','hdmi','./media.tmp'])  
+        time.sleep(1)
+except: pass
