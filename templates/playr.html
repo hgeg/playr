@@ -15,12 +15,24 @@
       $(window).keydown(function(event){
         if(event.which==13) {
           event.preventDefault();
-          if($('#url').val().length<5) return;
+          url = $('#url')
+          val = url.val();
+          if(val.length<5) return;
           $('#loader').animate({opacity:1},250,'ease-out');
-          $.post('/playr/',$('#form').serialize(),function() {
-            $('#url').val('');
+          $.post('/playr/',$('#form').serialize(),function(data) {
+            if(data=='url') {
+              url.attr({placeholder:'Playing media'});
+            }else if(data=='torrent') {
+              url.attr({placeholder:'Playing torrent'});
+            }else {
+              url.attr({placeholder:'Cannot play media'});
+            }
+            url.val('');
             $('#loader').animate({opacity:0},250,'ease-out');
           });
+        }else {
+          if(url.val().length > 0)
+            url.attr({placeholder:'http://'});
         }
       });
     </script>

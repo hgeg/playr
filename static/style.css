@@ -25,10 +25,10 @@ html {
   resize: none;
 }
 
-::-webkit-input-placeholder {color: #97929d;}
-:-moz-placeholder {color: #97929d;}
-::-moz-placeholder {color: #97929d;}
-:-ms-input-placeholder {color: #97929d;}
+::-webkit-input-placeholder {color: #b2b9be;}
+:-moz-placeholder {color: #b2b9be;}
+::-moz-placeholder {color: #b2b9be;}
+:-ms-input-placeholder {color: #b2b9be;}
 
 video {
   position: fixed; right: 0; bottom: 0;

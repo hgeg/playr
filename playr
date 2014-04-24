@@ -59,7 +59,7 @@ def play():
       url = url if 'http' in url else 'http://%s'%url
       if re.match(trurl,url):
         thread.start_new_thread(download_media,(url,))
-        return 'ok - type: torrent'
+        return 'torrent'
       try:
         ydl = youtube_dl.YoutubeDL({'outtmpl': '%(id)s%(ext)s'})
         ydl.add_default_info_extractors()
@@ -76,8 +76,8 @@ def play():
           vurl = re.findall(r'(http[^"(http)]*\.720.mp4)',requests.get(url).text)[0]
       subprocess.call(["screen", "-S", "omx", "-X", "quit"])
       subprocess.Popen(['screen','-dmS','omx','omxplayer','-o','hdmi',vurl])  
-      return 'ok - type: url'
-    except Exception as e: return 'error: %s'%e.message
+      return 'url'
+    except Exception as e: return 'error'
   else:
     t = render_template('playr.html')
     return t
