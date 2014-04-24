@@ -1,0 +1,4 @@
+#!/bin/bash
+pgrep -f 'python playr' | xargs kill
+rm media.tmp
+rm torrentor.log

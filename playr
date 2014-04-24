@@ -1,10 +1,55 @@
 #!/usr/bin/env python
-import requests,re,sys,subprocess,socket,youtube_dl
+import requests,time,re,os,sys,subprocess,socket,youtube_dl,thread,logging,libtorrent as lt
 from flask import Flask,request,render_template
 from flup.server.fcgi import WSGIServer
 app = Flask(__name__)
 yturl = r'(?:http(?:s|)://){0,1}(?:www.){0,1}youtu(?:\.be|be\.com)/(?:watch\?v=)([^\?&=]*)'
 trurl = r'(http(?:s|)://[^"]*torrent[^"]*)'
+
+def download_media(url):
+  cwd = os.getcwd()
+
+  logger = logging.getLogger('myapp')
+  hdlr = logging.FileHandler('%s/torrentor.log'%cwd)
+  formatter = logging.Formatter('%(levelname)s %(message)s')
+  hdlr.setFormatter(formatter)
+  logger.addHandler(hdlr) 
+  logger.setLevel(logging.INFO)
+
+  logger.info('Started torrentor')
+
+  session = lt.session()
+  session.listen_on(6881, 6891)
+
+  tfile = requests.get(url).content
+  e = lt.bdecode(tfile)
+  info = lt.torrent_info(e)
+  info.rename_file(0,'media.tmp')
+  logger.info('torrent: %s'%info.name())
+
+  h = session.add_torrent(info, cwd, storage_mode=lt.storage_mode_t.storage_mode_compact)
+  h.set_sequential_download(True)
+  playing = False
+  ctr = 10
+  logger.info('Downloading media file')
+  while not h.is_seed(): 
+    s = h.status()
+    if ctr==10:
+      logger.info('\rprogress: %.2f%%, %.2f kb/s'%(s.progress*100,s.download_rate/1024))
+      ctr = 0
+    if not playing and s.progress>0.1:
+      try:
+        logger.info('\rprogress: %.2f%%, %.2f kb/s'%(s.progress*100,s.download_rate/1024))
+        logger.info('Playing media on: %s/media.tmp'%(cwd))
+        playing = True
+        subprocess.call(["screen", "-S", "omx", "-X", "quit"])
+        subprocess.Popen(['screen','-S','omx','omxplayer','-o','hdmi','%s/media.tmp'%cwd])  
+        logger.info('Starting stream')
+      except Exception as e:
+        logger.error('player failure: %s'%e.message)
+    time.sleep(0.5)
+    ctr+=1
+  logger.info('Finished')
 
 @app.route("/playr/",methods = ['GET','POST'])
 def play():
@@ -13,7 +58,7 @@ def play():
       url = request.form['url']
       url = url if 'http' in url else 'http://%s'%url
       if re.match(trurl,url):
-        subprocess.Popen(['screen','-S','torrentor','./run/torrentor',url])
+        thread.start_new_thread(download_media,(url,))
         return 'ok - type: torrent'
       try:
         ydl = youtube_dl.YoutubeDL({'outtmpl': '%(id)s%(ext)s'})
@@ -30,13 +75,13 @@ def play():
         elif 'vk' in url:
           vurl = re.findall(r'(http[^"(http)]*\.720.mp4)',requests.get(url).text)[0]
       subprocess.call(["screen", "-S", "omx", "-X", "quit"])
-      subprocess.Popen(['screen','-dmS','omx','./run/omxplayer','-o','hdmi',vurl])  
+      subprocess.Popen(['screen','-dmS','omx','omxplayer','-o','hdmi',vurl])  
       return 'ok - type: url'
-    except: return 'error'
+    except Exception as e: return 'error: %s'%e.message
   else:
     t = render_template('playr.html')
     return t
 
 if __name__ == "__main__":
-    #app.run(host='127.0.0.1',port=8092,debug=True)
+    #app.run(host='0.0.0.0',port=8774,debug=True)
     WSGIServer(app).run()
