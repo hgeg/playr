@@ -13,9 +13,9 @@
           $('.container').animate({opacity:1},800,'ease-out');
       });
       $(window).keydown(function(event){
+        url = $('#url');
         if(event.which==13) {
           event.preventDefault();
-          url = $('#url')
           val = url.val();
           if(val.length<5) return;
           $('#loader').animate({opacity:1},250,'ease-out');

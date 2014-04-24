@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-import requests,time,re,os,sys,subprocess,socket,youtube_dl,thread,logging,libtorrent as lt
+import requests,time,re,os,sys,subprocess
+import youtube_dl,thread,logging,libtorrent,HTMLParser
 from flask import Flask,request,render_template
 from flup.server.fcgi import WSGIServer
 app = Flask(__name__)
@@ -18,12 +19,12 @@ def download_media(url):
 
   logger.info('Started torrentor')
 
-  session = lt.session()
+  session = libtorrent.session()
   session.listen_on(6881, 6891)
 
   tfile = requests.get(url).content
-  e = lt.bdecode(tfile)
-  info = lt.torrent_info(e)
+  e = libtorrent.bdecode(tfile)
+  info = libtorrent.torrent_info(e)
   info.rename_file(0,'media.tmp')
   logger.info('torrent: %s'%info.name())
 
@@ -73,11 +74,12 @@ def play():
           vdict = dict(re.findall(r'(hd|md|sd): "([^"]*)"',requests.get(url).text))
           vurl = vdict['hd'] if 'hd' in vdict else vdict['md'] if 'md' in vdict else vdict['sd']
         elif 'vk' in url:
+          url = HTMLParser.HTMLParser().unescape(url)
           vurl = re.findall(r'(http[^"(http)]*\.720.mp4)',requests.get(url).text)[0]
       subprocess.call(["screen", "-S", "omx", "-X", "quit"])
       subprocess.Popen(['screen','-dmS','omx','omxplayer','-o','hdmi',vurl])  
       return 'url'
-    except Exception as e: return 'error'
+    except Exception as e: return 'error %s'%e.message
   else:
     t = render_template('playr.html')
     return t
