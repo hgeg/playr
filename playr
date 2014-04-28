@@ -71,11 +71,15 @@ def play():
       except:
         url = re.findall(r'<iframe [^>]*src=(?:"|\')([^\'"]*(?:mail\.ru|vk)[^\'"]*)(?:"|\')[^>]*',requests.get(url).text)[0]
         if 'mail.ru' in url:
-          vdict = dict(re.findall(r'(hd|md|sd): "([^"]*)"',requests.get(url).text))
+          vdict = dict(re.findall(r'"{0,1}(hd|md|sd)"{0,1}:"([^"]*)"',requests.get(url).text))
           vurl = vdict['hd'] if 'hd' in vdict else vdict['md'] if 'md' in vdict else vdict['sd']
         elif 'vk' in url:
           url = HTMLParser.HTMLParser().unescape(url)
           vurl = re.findall(r'(http[^"(http)]*\.720.mp4)',requests.get(url).text)[0]
+        elif 'daclip' in url:
+          url = HTMLParser.HTMLParser().unescape(url)
+          vurl = re.findall(r'(http[^"(http)]*\.mp4)',requests.get(url).text)[0]
+
       subprocess.call(["screen", "-S", "omx", "-X", "quit"])
       subprocess.Popen(['screen','-dmS','omx','omxplayer','-o','hdmi',vurl])  
       return 'url'

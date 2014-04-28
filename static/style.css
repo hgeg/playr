@@ -23,6 +23,10 @@ html {
   word-break: break-word;
   background-color: transparent;
   resize: none;
+  overflow: hidden;
+
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
 
 ::-webkit-input-placeholder {color: #b2b9be;}
