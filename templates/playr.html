@@ -21,7 +21,7 @@
           $('#loader').animate({opacity:1},250,'ease-out');
           $.post('/playr/',$('#form').serialize(),function(data) {
             if(data=='url') {
-              url.attr({placeholder:'Playing media'});
+              url.attr({placeholder:val});
             }else if(data=='torrent') {
               url.attr({placeholder:'Playing torrent'});
             }else {
