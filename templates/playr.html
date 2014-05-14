@@ -17,13 +17,15 @@
         if(event.which==13) {
           event.preventDefault();
           val = url.val();
-          if(val.length<5) return;
+          if(val.length<2) return;
           $('#loader').animate({opacity:1},250,'ease-out');
           $.post('/playr/',$('#form').serialize(),function(data) {
             if(data=='url') {
               url.attr({placeholder:val});
             }else if(data=='torrent') {
               url.attr({placeholder:'Playing torrent'});
+            }else if(data.indexOf('control')==0) {
+              url.attr({placeholder:data.slice(7)});
             }else {
               url.attr({placeholder:'Cannot play media'});
             }
@@ -47,9 +49,16 @@
       </div>
         <form id="form">
           <div class='span ten'>
-              <textarea autofocus autocomplete="off" onblur="this.focus();return false" id="url" name="url" class="main-input" placeholder="http://" rows="5"></textarea>
+              <textarea autofocus autocomplete="off" onblur="this.focus();return false" id="url" name="url" class="main-input" placeholder="http://" rows="50"></textarea>
           </div>
         </form>
+        <p class="bottom">
+        <b>Controls</b> </br>
+        "play"  resume playing.</br>
+        "pause" pause media.</br>
+        "ff"  fast-forward 30 seconds.</br>
+        "rw"  rewind 30 seconds.
+        </p>
     </div>
   </body>
 </html>

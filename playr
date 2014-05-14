@@ -9,52 +9,52 @@ trurl = r'(http(?:s|)://[^"]*torrent[^"]*)'
 
 def download_media(url):
   cwd = os.getcwd()
+  try:
+    session = libtorrent.session()
+    session.listen_on(6881, 6891)
 
-  logger = logging.getLogger('myapp')
-  hdlr = logging.FileHandler('%s/torrentor.log'%cwd)
-  formatter = logging.Formatter('%(levelname)s %(message)s')
-  hdlr.setFormatter(formatter)
-  logger.addHandler(hdlr) 
-  logger.setLevel(logging.INFO)
+    tfile = requests.get(url).content
+    e = libtorrent.bdecode(tfile)
+    info = libtorrent.torrent_info(e)
+    info.rename_file(0,'media.tmp')
 
-  logger.info('Started torrentor')
-
-  session = libtorrent.session()
-  session.listen_on(6881, 6891)
-
-  tfile = requests.get(url).content
-  e = libtorrent.bdecode(tfile)
-  info = libtorrent.torrent_info(e)
-  info.rename_file(0,'media.tmp')
-  logger.info('torrent: %s'%info.name())
-
-  h = session.add_torrent(info, cwd, storage_mode=lt.storage_mode_t.storage_mode_compact)
-  h.set_sequential_download(True)
-  playing = False
-  ctr = 10
-  logger.info('Downloading media file')
+    h = session.add_torrent(info, cwd, storage_mode=libtorrent.storage_mode_t.storage_mode_compact)
+    h.set_sequential_download(True)
+    playing = False
+    ctr = 10
+  except Exception as e: return
   while not h.is_seed(): 
     s = h.status()
-    if ctr==10:
-      logger.info('\rprogress: %.2f%%, %.2f kb/s'%(s.progress*100,s.download_rate/1024))
-      ctr = 0
+    if ctr==10: ctr = 0
     if not playing and s.progress>0.1:
       try:
-        logger.info('\rprogress: %.2f%%, %.2f kb/s'%(s.progress*100,s.download_rate/1024))
-        logger.info('Playing media on: %s/media.tmp'%(cwd))
         playing = True
         subprocess.call(["screen", "-S", "omx", "-X", "quit"])
         subprocess.Popen(['screen','-S','omx','omxplayer','-o','hdmi','%s/media.tmp'%cwd])  
-        logger.info('Starting stream')
-      except Exception as e:
-        logger.error('player failure: %s'%e.message)
+      except Exception as e: pass
     time.sleep(0.5)
     ctr+=1
-  logger.info('Finished')
+
+def control(line):
+  if "pause" == line: 
+    subprocess.call(["screen", "-S", "omx", "-X", "stuff", 'p'])
+  if "play" == line: 
+    subprocess.call(["screen", "-S", "omx", "-X", "stuff", 'p'])
+  if "stop" == line:
+    subprocess.call(["screen", "-S", "omx", "-X", "stuff", 'q'])
+  if "ff" == line:
+    subprocess.call(["screen", "-S", "omx", "-X", "stuff", '\c[[C'])
+  if "rw" == line:
+    subprocess.call(["screen", "-S", "omx", "-X", "stuff", '\c[[D'])
 
 @app.route("/playr/",methods = ['GET','POST'])
 def play():
   if request.method == 'POST':
+    ctrl = request.form['url']
+    if ctrl in ('play','pause','stop','ff','rw'):
+        control(ctrl)
+        state = {'play':'playing','pause':'paused','stop':'http://','ff':'+30 secs','rw':'-30 secs'}
+        return "control"+state[ctrl]
     try:
       url = request.form['url']
       url = url if 'http' in url else 'http://%s'%url
@@ -89,5 +89,7 @@ def play():
     return t
 
 if __name__ == "__main__":
-    #app.run(host='0.0.0.0',port=8774,debug=True)
+    #subprocess.Popen(['screen','-S','cecmonitor','cec-client', '-m','RPI', '-f', 'ceclog'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    #thread.start_new_thread(cec,('ceclog',))
     WSGIServer(app).run()
+    #app.run(host='0.0.0.0',port=8774,debug=True)
