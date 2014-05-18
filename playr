@@ -6,6 +6,8 @@ from flup.server.fcgi import WSGIServer
 app = Flask(__name__)
 yturl = r'(?:http(?:s|)://){0,1}(?:www.){0,1}youtu(?:\.be|be\.com)/(?:watch\?v=)([^\?&=]*)'
 trurl = r'(http(?:s|)://[^"]*torrent[^"]*)'
+queue,qlock = [],False
+
 
 def download_media(url):
   cwd = os.getcwd()
