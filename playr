@@ -58,6 +58,25 @@ def play():
         control(ctrl)
         state = {'play':'playing','pause':'paused','stop':'http://','ff':'+30 secs','rw':'-30 secs'}
         return "control"+state[ctrl]
+    elif 'queue' == ctrl[:5]:
+      try:
+        assert(not qlock)
+        qlock = True
+        queue.append(ctrl.split()[1])
+        qlock = False
+        return 'Queue:\n%s'%'\n'.join(queue)
+      except:
+        return 'Cannot access queue'
+    elif ctrl == 'clear':
+      try:
+        assert(not qlock)
+        qlock = True
+        queue = []
+        qlock = False
+        return 'Queue cleared' 
+      except:
+        return 'Cannot access queue'
+      
     try:
       url = ctrl
       url = url if 'http' in url else 'http://%s'%url
@@ -73,7 +92,10 @@ def play():
         vurl = video['url']
       except:
         text = requests.get(url).text
-        vurl = re.findall(r'file: "(.*)",',text)[0]
+        try:
+          vurl = re.findall(r'file: "(.*)",',text)[0]
+        except:
+          vurl = ''
         url = re.findall(r'<iframe [^>]*src=(?:"|\')([^\'"]*(?:mail\.ru|vk)[^\'"]*)(?:"|\')[^>]*',text)[0]
         if 'mail.ru' in url:
           vdict = dict(re.findall(r'"{0,1}(hd|md|sd)"{0,1}:"([^"]*)"',requests.get(url).text))
