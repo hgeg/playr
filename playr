@@ -28,7 +28,8 @@ def download_media(url):
   while not h.is_seed(): 
     s = h.status()
     if ctr==10: ctr = 0
-    if not playing and s.progress>0.5:
+    #TODO: pllay torrents after 10% loading.
+    if not playing and s.progress>0.95:
       try:
         playing = True
         subprocess.call(["screen", "-S", "omx", "-X", "quit"])
@@ -58,7 +59,7 @@ def play():
         state = {'play':'playing','pause':'paused','stop':'http://','ff':'+30 secs','rw':'-30 secs'}
         return "control"+state[ctrl]
     try:
-      url = request.form['url']
+      url = ctrl
       url = url if 'http' in url else 'http://%s'%url
       if re.match(trurl,url):
         thread.start_new_thread(download_media,(url,))
@@ -71,7 +72,9 @@ def play():
         else: video = result
         vurl = video['url']
       except:
-        url = re.findall(r'<iframe [^>]*src=(?:"|\')([^\'"]*(?:mail\.ru|vk)[^\'"]*)(?:"|\')[^>]*',requests.get(url).text)[0]
+        text = requests.get(url).text
+        vurl = re.findall(r'file: "(.*)",',text)[0]
+        url = re.findall(r'<iframe [^>]*src=(?:"|\')([^\'"]*(?:mail\.ru|vk)[^\'"]*)(?:"|\')[^>]*',text)[0]
         if 'mail.ru' in url:
           vdict = dict(re.findall(r'"{0,1}(hd|md|sd)"{0,1}:"([^"]*)"',requests.get(url).text))
           vurl = vdict['hd'] if 'hd' in vdict else vdict['md'] if 'md' in vdict else vdict['sd']
