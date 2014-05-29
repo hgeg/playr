@@ -1,2 +1,2 @@
 #!/bin/bash
-spawn-fcgi playr -p 8774
+spawn-fcgi playr.py -p 8774

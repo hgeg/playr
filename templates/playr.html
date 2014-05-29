@@ -26,8 +26,12 @@
               url.attr({placeholder:'Playing torrent'});
             }else if(data.indexOf('control')==0) {
               url.attr({placeholder:data.slice(7)});
+            }else if(data.indexOf('queue')==0) {
+              url.attr({placeholder:data.slice(6)});
             }else {
               url.attr({placeholder:'Cannot play media'});
+              //DEBUG
+              //url.attr({placeholder:data});
             }
             url.val('');
             $('#loader').animate({opacity:0},250,'ease-out');
