@@ -62,3 +62,7 @@ video {
   -webkit-font-smoothing: antialiased;
   color: #a2a9ae;
 }
+
+i {
+  font-size: 18px;
+}
