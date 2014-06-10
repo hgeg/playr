@@ -1,33 +1,36 @@
 #!/usr/bin/env python
-import requests,time,re,os,sys,subprocess,omx
+import requests,time,re,os,sys,subprocess
 import youtube_dl,thread,logging,libtorrent,HTMLParser
 from flask import Flask,request,render_template
 from flup.server.fcgi import WSGIServer
 app = Flask(__name__)
 yturl = r'(?:http(?:s|)://){0,1}(?:www.){0,1}youtu(?:\.be|be\.com)/(?:watch\?v=)([^\?&=]*)'
 trurl = r'(http(?:s|)://[^"]*torrent[^"]*)'
-queue,qlock,player = [],False,None
+queue,qlock,resolving,progress = [],False,False,0
+CONTROL_DIRECTIVES = ('play','pause','stop','ff','rw','queue','clear','torrent')
+YDL_SUPPORTED_SITES = youtube_dl.extractor.__dict__.keys()
 
 def resolve_url(url):
+  resolving = True
   url = url if 'http' in url else 'http://%s'%url
   vurl = None
   if re.match(trurl,url):
     thread.start_new_thread(download_media,(url,))
     return 'torrent'
-  try:
+  if map(lambda s: s in url, YDL_SUPPORTED_SITES):
     ydl = youtube_dl.YoutubeDL({'outtmpl': '%(id)s%(ext)s'})
     ydl.add_default_info_extractors()
     result = ydl.extract_info(url,download=False)
     if 'entries' in result: video = result['entries'][0]
     else: video = result
     vurl = video['url']
-  except:
+  else:
     text = requests.get(url).text
     try:
       vurl = re.findall(r'file: "(.*)",',text)[0]
     except:
       vurl = ''
-    url = re.findall(r'<iframe [^>]*src=(?:"|\')([^\'"]*(?:mail\.ru|vk)[^\'"]*)(?:"|\')[^>]*',text)[0]
+    url = re.findall(r'<iframe [^>]*src=(?:"|\')([^\'"]*(?:mail\.ru|vk|daclip)[^\'"]*)(?:"|\')[^>]*',text)[0]
     if 'mail.ru' in url:
       vdict = dict(re.findall(r'"{0,1}(hd|md|sd)"{0,1}:"([^"]*)"',requests.get(url).text))
       vurl = vdict['hd'] if 'hd' in vdict else vdict['md'] if 'md' in vdict else vdict['sd']
@@ -37,10 +40,13 @@ def resolve_url(url):
     elif 'daclip' in url:
       url = HTMLParser.HTMLParser().unescape(url)
       vurl = re.findall(r'(http[^"(http)]*\.mp4)',requests.get(url).text)[0]
+  resolving = False
   return vurl
 
 def download_media(url):
   cwd = os.getcwd()
+  global progress
+  progress = 0
   try:
     session = libtorrent.session()
     session.listen_on(6881, 6891)
@@ -56,72 +62,75 @@ def download_media(url):
     ctr = 10
   except Exception as e: return
   while not h.is_seed(): 
+    progress = s.progress*100
     s = h.status()
     if ctr==10: ctr = 0
-    #TODO: pllay torrents after 10% loading.
-    if not playing and s.progress>0.95:
-      try:
-        playing = True
-        subprocess.call(["screen", "-S", "omx", "-X", "quit"])
-        subprocess.Popen(['screen','-S','omx','omxplayer','-o','hdmi','media.tmp'])  
-      except Exception as e: pass
+    if s.progress>0.95:
+      queue.append('media.tmp')
     time.sleep(2)
     ctr+=1
 
-def play_media(vurl):
-  global player
-  player = omx.OMXPlayer(vurl)
+def play_media():
+  global resolving,progress
   while True:
     time.sleep(1)
-    if player.finished:
+    if resolving: 
+      time.sleep(5)
+      continue
+    try:
+      pcount = int(check_output(["pgrep","-f","omxplayer","-c"]))
+    except: pcount = 0
+    if pcount is 0:
       try:
-        player = omx.OMXPlayer(resolve_url(queue.pop(0)))
-      except: return      
+        progress = 0
+        subprocess.Popen(['screen','-dmS','omx','omxplayer','-o','hdmi',resolve_url(queue.pop(0))])
+      except: pass      
 
 def control(line):
-  global player
-  if not player: return
+  global queue,progress
   if "pause" == line: 
-    player.pause()
+    subprocess.call(["screen", "-S", "omx", "-X", "stuff", 'p'])
+    return 'paused'
   if "play" == line: 
-    player.play()
+    subprocess.call(["screen", "-S", "omx", "-X", "stuff", 'p'])
+    return 'playing'
   if "stop" == line:
-    player.stop()
+    subprocess.call(["screen", "-S", "omx", "-X", "stuff", 'q'])
+    return 'http://'
   if "ff" == line:
-    player.seek_forward_30()
-  if "fff" == line:
-    player.seek_forward_250()
+    subprocess.call(["screen", "-S", "omx", "-X", "stuff", '\c[[C'])
+    return '+30 secs'
   if "rw" == line:
-    player.seek_backward_30()
-  if "rww" == line:
-    player.seek_backward_250()
+    subprocess.call(["screen", "-S", "omx", "-X", "stuff", '\c[[D'])
+    return '-30 secs'
+  if "clear" == line:
+    queue = []
+    return 'queue cleared'
+  if "torrent" == line:
+    return '%d%%'%progress
+  if "queue" in line[:5]:
+    try:
+      p,q = line.split()
+      queue.append(q)
+      return 'added to queue'
+    except:
+      return ', '.join([e.split('/')[-1] for e in queue] if queue else ['No items in the queue'])
+     
 
 @app.route("/playr/",methods = ['GET','POST'])
 def play():
   global queue,player
   if request.method == 'POST':
     ctrl = request.form['url']
-    if ctrl in ('play','pause','stop','ff','rw'):
-        control(ctrl)
-        state = {'play':'playing','pause':'paused','stop':'http://','ff':'+30 secs','rw':'-30 secs'}
-        return "control"+state[ctrl]
-    elif 'queue' == ctrl[:5]:
-      try:
-        queue.append(ctrl.split()[1])
-        return "queue:Added to queue"
-      except:
-        return 'queue:%s'%', '.join([e.split('/')[-1] for e in queue] if queue else ['No items in the queue'])
-    elif ctrl == 'clear':
-      try:
-        queue = []
-        return 'Queue cleared' 
-      except:
-        return 'Cannot access queue'
+    if ctrl in CONTROL_DIRECTIVES:
+      state = control(ctrl)
+      return "control:"+state
     try:
       vurl = resolve_url(ctrl)
       if player:
         player.stop()
-      thread.start_new_thread(play_media,(vurl,))
+      subprocess.call(["screen", "-S", "omx", "-X", "quit"])
+      subprocess.Popen(['screen','-dmS','omx','omxplayer','-o','hdmi',vurl])
       return 'url'
     except Exception as e: return 'Error: %s'%e.message
   else:
@@ -129,7 +138,6 @@ def play():
     return t
 
 if __name__ == "__main__":
-    #subprocess.Popen(['screen','-S','cecmonitor','cec-client', '-m','RPI', '-f', 'ceclog'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-    #thread.start_new_thread(cec,('ceclog',))
+    thread.start_new_thread(play_media,())
     WSGIServer(app).run()
     #app.run(host='0.0.0.0',port=8774,debug=True)
