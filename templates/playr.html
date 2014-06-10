@@ -24,10 +24,8 @@
               url.attr({placeholder:val});
             }else if(data=='torrent') {
               url.attr({placeholder:'Playing torrent'});
-            }else if(data.indexOf('control')==0) {
-              url.attr({placeholder:data.slice(7)});
-            }else if(data.indexOf('queue')==0) {
-              url.attr({placeholder:data.slice(6)});
+            }else if(data.indexOf('control:')==0) {
+              url.attr({placeholder:data.slice(8)});
             }else {
               url.attr({placeholder:'Cannot play media'});
               //DEBUG
@@ -48,7 +46,7 @@
       <div class='row'></div>
       <div class='row'>
           <div class='span ten'><h2><small>&#9654;</small>Playr
-            <img id="loader" width="28px" height="28px" src="/static/loading.gif" style="vertical-align:middle;opacity:0;">
+            <img id="loader" width="28" height="28" src="/static/loading.gif" style="vertical-align:middle;opacity:0;" alt="loading">
           </h2></div>
       </div>
         <form id="form">
@@ -64,6 +62,8 @@
           rw  <i>rewind 30 seconds.</i></br>
           queue <i>add new url to queue.</i></br>
           clear  <i>reset queue.</i>
+          torrent  <i>check torrent progress.</i>
+
         </p>
     </div>
   </body>
