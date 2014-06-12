@@ -22,8 +22,6 @@
           $.post('/playr/',$('#form').serialize(),function(data) {
             if(data=='url') {
               url.attr({placeholder:val});
-            }else if(data=='torrent') {
-              url.attr({placeholder:'Playing torrent'});
             }else if(data.indexOf('control:')==0) {
               url.attr({placeholder:data.slice(8)});
             }else {
@@ -61,8 +59,7 @@
           ff  <i>fast-forward 30 seconds.</i></br>
           rw  <i>rewind 30 seconds.</i></br>
           queue <i>add new url to queue.</i></br>
-          clear  <i>reset queue.</i>
-          torrent  <i>check torrent progress.</i>
+          clear  <i>reset queue.</i></br>
 
         </p>
     </div>
