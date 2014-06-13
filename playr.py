@@ -69,7 +69,7 @@ def control(line):
     return 'Playing'
   if "stop" == line:
     subprocess.call(["screen", "-S", "omx", "-X", "stuff", 'q'])
-    return 'http://'
+    return 'Stopped'
   if "ff" == line:
     subprocess.call(["screen", "-S", "omx", "-X", "stuff", '\c[[C'])
     return '+30 secs'
