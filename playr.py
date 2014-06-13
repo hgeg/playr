@@ -108,5 +108,5 @@ def play():
 
 if __name__ == "__main__":
     thread.start_new_thread(play_media,())
-    #WSGIServer(app).run()
-    app.run(host='0.0.0.0',port=8774,debug=True)
+    WSGIServer(app).run()
+    #app.run(host='0.0.0.0',port=8774,debug=True)
