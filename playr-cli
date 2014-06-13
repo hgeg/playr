@@ -1,0 +1,34 @@
+#!/usr/bin/env python
+
+import sys, requests
+
+def main():
+  command = ''
+  try:
+    command = '+'.join(sys.argv[1:])
+    assert(command)
+    payload = 'url=%s'%command
+    try:
+      r = requests.post('http://pqcns.us/playr/',data=payload,headers={'Content-Type':'application/x-www-form-urlencoded'})
+      assert(r.status_code==200)
+      ret = r.text.split(':')[-1]
+      if ret == 'url': print 'streaming video file.'
+      else: print ret
+    except Exception as e:
+      print 'Error: %s'%e.message
+    assert(command!='-h')
+  except:
+    print 'Playr cli'
+    print 'usage: playr [URL | play | pause | stop | ff | rw | queue URL | clear]'
+    if command == '-h':
+      print '''
+COMMANDS
+  play        : resume paused video
+  pause       : pause playing video
+  stop        : stop current video
+  ff          : fast-forward 30 seconds
+  rw          : go backwards 30 seconds
+  queue [URL] : add URL to playing queue, or show the queue if no URL provided.
+  clear       : clear playing queue
+      '''
+if __name__ == '__main__': main()
