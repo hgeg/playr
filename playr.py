@@ -85,7 +85,7 @@ def control(line):
       queue.append(q)
       return 'Added to queue'
     except:
-      return ', '.join([re.findall(r'.*/([^/]*)/?',e) for e in queue] if queue else ['No items in the queue'])
+      return ', '.join([re.findall(r'.+/([^/]+)/?',e)[0] for e in queue] if queue else ['No items in the queue'])
      
 
 @app.route("/playr/",methods = ['GET','POST'])
