@@ -1,0 +1,31 @@
+#!/bin/sh
+#
+
+case "$1" in
+  start)
+    # Start daemons.
+
+    echo -n $"Starting playr-server: "
+    echo
+    spawn-fcgi playr.py -p 8774
+    ;;
+
+  stop)
+    # Stop daemons.
+    echo -n $"Shutting down playr-server: "
+    pgrep -f 'python playr' | xargs kill
+    echo "OK"
+
+    # Do clean-up works here like removing pid files from /var/run, etc.
+    ;;
+  restart)
+    $0 stop
+    $0 start
+    ;;
+
+  *)
+    echo $"Usage: $0 {start|stop|status|restart}"
+    exit 1
+esac
+
+exit 0

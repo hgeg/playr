@@ -7,7 +7,7 @@ app = Flask(__name__)
 gurl = r'(?:http(?:s|)://)?(?:www\.)?(.*)\.[^/]*(?:/.*)'
 trurl = r'(http(?:s|)://[^"]*torrent[^"]*)'
 queue,qlock,resolving,progress = [],False,False,0
-CONTROL_DIRECTIVES = ('play','pause','stop','ff','rw','queue','clear','torrent')
+CONTROL_DIRECTIVES = ('play','pause','stop','ff','rw','fff','rww','queue','clear','torrent')
 YDL_SUPPORTED_SITES = youtube_dl.extractor.__dict__.keys()
 
 f = open('./templates/playr.html')
@@ -55,7 +55,7 @@ def play_media():
     if pcount is 0 and len(queue)>0:
       try:
         progress = 0
-        subprocess.Popen(['screen','-dmS','omx','omxplayer','-o','hdmi',resolve_url(queue.pop(0))])
+        subprocess.Popen(['screen','-dmS','omx','omxplayer','-o','hdmi',queue.pop(0)[1]])
         time.sleep(10)
       except: pass      
 
@@ -70,6 +70,12 @@ def control(line):
   if "stop" == line:
     subprocess.call(["screen", "-S", "omx", "-X", "stuff", 'q'])
     return 'Stopped'
+  if "fff" == line:
+    subprocess.call(["screen", "-S", "omx", "-X", "stuff", '\c[[A'])
+    return '+5 mins'
+  if "rww" == line:
+    subprocess.call(["screen", "-S", "omx", "-X", "stuff", '\c[[B'])
+    return '-5 mins'
   if "ff" == line:
     subprocess.call(["screen", "-S", "omx", "-X", "stuff", '\c[[C'])
     return '+30 secs'
@@ -82,17 +88,18 @@ def control(line):
   if "queue" in line[:6]:
     try:
       p,q = line.split()
-      queue.append(q)
+      queue.append((q,resolve_url(q)))
       return 'Added to queue'
     except:
-      return ', '.join([re.findall(r'.+/([^/]+)/?',e)[0] for e in queue] if queue else ['No items in the queue'])
+      return ', '.join([re.findall(r'.+/([^/]+)/?',e[0])[0] for e in queue] if queue else ['No items in the queue'])
+  return 'http://'
      
 
 @app.route("/playr/",methods = ['GET','POST'])
 def play():
   global queue
   if request.method == 'POST':
-    ctrl = request.form['url']
+    ctrl = request.form['url'].strip()
     if ctrl.split()[0] in CONTROL_DIRECTIVES:
       state = control(ctrl)
       return "control:"+state
